@@ -15,9 +15,9 @@ spec:
     helm:
       parameters:
         - name: image.repository
-          value: "fluentd"
+          value: "fluent/fluentd-kubernetes-daemonset"
         - name: image.tag
-          value: "fluentd-kubernetes-daemonset-v1.4.2"
+          value: "v1.18-debian-papertrail-1"
         - name: resources.requests.cpu
           value: "10m"
         - name: resources.requests.memory
