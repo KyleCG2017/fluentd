@@ -51,9 +51,22 @@ spec:
               @label @CLOUDWATCH
               region us-east-1                # Change to your AWS region
               tag cloudwatch.logs
-              log_group_name_prefix /aws/     # Adjust to match your CloudWatch log groups
-              use_log_group_name_prefix true
+              log_group_name /aws/lambda/my-function  # Specify an actual log group name
               state_file /var/log/fluentd-cloudwatch.state
+              <parse>
+                @type json
+              </parse>
+            </source>
+            
+            # If you want to monitor multiple log groups, define additional sources
+            <source>
+              @type cloudwatch_logs
+              @id in_cloudwatch_logs_2
+              @label @CLOUDWATCH
+              region us-east-1
+              tag cloudwatch.logs.ec2
+              log_group_name /aws/ec2/instance-logs  # Another log group
+              state_file /var/log/fluentd-cloudwatch-ec2.state
               <parse>
                 @type json
               </parse>
