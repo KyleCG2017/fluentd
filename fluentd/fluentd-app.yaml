@@ -53,7 +53,10 @@ spec:
               tag cloudwatch.logs.kta
               log_group_name /aws/lambda/kta-log-group   # Specify your log group for KTA
               log_stream_name "kta-log-stream"           # Specify the log stream name
-              state_file /var/log/fluentd-cloudwatch-kta.state
+              <storage>
+                @type file
+                path /var/log/fluentd-cloudwatch-kta.state
+              </storage>
               <parse>
                 @type json
               </parse>
@@ -68,17 +71,20 @@ spec:
               tag cloudwatch.logs.trans
               log_group_name /aws/lambda/trans-log-group  # Specify your log group for TRANS
               log_stream_name "trans-log-stream"          # Specify the log stream name
-              state_file /var/log/fluentd-cloudwatch-trans.state
+              <storage>
+                @type file
+                path /var/log/fluentd-cloudwatch-trans.state
+              </storage>
               <parse>
                 @type json
               </parse>
             </source>
 
         - name: fileConfigs.02_filters\.conf
-          value: ""  # This section is now empty, no filters applied
+          value: ""  # No filters applied
 
         - name: fileConfigs.03_dispatch\.conf
-          value: ""  # This section is now empty, no dispatching applied
+          value: ""  # No dispatch applied
 
         - name: fileConfigs.04_outputs\.conf
           value: |
