@@ -44,29 +44,6 @@ spec:
           value: fluent-plugin-cloudwatch-logs
         - name: plugins[2]
           value: fluent-plugin-elasticsearch
-        # Pass the configs as strings
-        - name: fileConfigs.01_sources.conf
-          value: |
-            ## Basic Test Source - Tail logs
-            <source>
-              @type tail
-              @id in_tail_test_logs
-              path /var/log/test/*.log
-              pos_file /var/log/fluentd-test-logs.log.pos
-              tag test.*
-              read_from_head true
-              <parse>
-                @type none
-              </parse>
-            </source>
-        - name: fileConfigs.04_outputs.conf
-          value: |
-            ## Output to stdout (console)
-            <label @OUTPUT>
-              <match test.**>
-                @type stdout
-              </match>
-            </label>
   syncPolicy:
     automated:
       prune: true
