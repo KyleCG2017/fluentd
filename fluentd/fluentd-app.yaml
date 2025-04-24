@@ -44,6 +44,72 @@ spec:
           value: fluent-plugin-cloudwatch-logs
         - name: plugins[2]
           value: fluent-plugin-elasticsearch
+        # Providing fileConfigs as strings
+        - name: fileConfigs.01_sources.conf
+          value: |
+            <source>
+              @type tail
+              @id in_tail_test_logs
+              @label @KUBERNETES
+              path /var/log/test/*.log
+              pos_file /var/log/fluentd-test-logs.log.pos
+              tag test.*
+              read_from_head true
+              <parse>
+                @type none
+              </parse>
+            </source>
+        - name: fileConfigs.02_filters.conf
+          value: |
+            <label @KUBERNETES>
+              <match kubernetes.var.log.containers.fluentd**>
+                @type relabel
+                @label @FLUENT_LOG
+              </match>
+
+              <filter kubernetes.**>
+                @type record_transformer
+                enable_ruby
+                <record>
+                  hostname ${record["kubernetes"]["host"]}
+                  raw ${record["log"]}
+                </record>
+                remove_keys $.kubernetes.host,log
+              </filter>
+
+              <match **>
+                @type relabel
+                @label @DISPATCH
+              </match>
+            </label>
+        - name: fileConfigs.03_dispatch.conf
+          value: |
+            <label @DISPATCH>
+              <filter **>
+                @type prometheus
+                <metric>
+                  name fluentd_input_status_num_records_total
+                  type counter
+                  desc The total number of incoming records
+                  <labels>
+                    tag ${tag}
+                    hostname ${hostname}
+                  </labels>
+                </metric>
+              </filter>
+
+              <match **>
+                @type relabel
+                @label @OUTPUT
+              </match>
+            </label>
+        - name: fileConfigs.04_outputs.conf
+          value: |
+            <label @OUTPUT>
+              <match test.**>
+                @type stdout
+              </match>
+            </label>
   syncPolicy:
     automated:
       prune: true
