@@ -44,52 +44,6 @@ spec:
           value: fluent-plugin-cloudwatch-logs
         - name: plugins[2]
           value: fluent-plugin-elasticsearch
-        - name: fileConfigs.01_sources.conf
-          value: |
-            <source>
-              @type cloudwatch_logs
-              region us-east-1
-              log_group_name awie-g3-d-kta-app-01-log
-              tag cloudwatch.app
-            </source>
-
-            <source>
-              @type cloudwatch_logs
-              region us-east-1
-              log_group_name awie-g3-d-kta-trans-01-log
-              tag cloudwatch.trans
-            </source>
-
-        - name: fileConfigs.04_outputs.conf
-          value: |
-            <label @OUTPUT>
-              <match cloudwatch.app>
-                @type loki
-                url http://loki-query-frontend:3100
-                <label>
-                  app fluentd
-                  name awie-g3-d-kta-app-01-log
-                  namespace monitoring
-                </label>
-                <buffer>
-                  flush_interval 5s
-                </buffer>
-              </match>
-
-              <match cloudwatch.trans>
-                @type loki
-                url http://loki-query-frontend:3100
-                <label>
-                  app fluentd
-                  name awie-g3-d-kta-trans-01-log
-                  namespace monitoring
-                </label>
-                <buffer>
-                  flush_interval 5s
-                </buffer>
-              </match>
-            </label>
-
   syncPolicy:
     automated:
       prune: true
