@@ -44,99 +44,39 @@ spec:
           value: fluent-plugin-cloudwatch-logs
         - name: fileConfigs.01_sources\.conf
           value: |
-            ## CloudWatch Logs input
             <source>
               @type cloudwatch_logs
-              @id in_cloudwatch_logs
-              @label @CLOUDWATCH
-              region us-east-1                # Change to your AWS region
+              region us-east-1
               tag cloudwatch.logs
-              log_group_name /aws/lambda/my-function  # Specify an actual log group name
+              log_group_name /aws/lambda/my-function
               state_file /var/log/fluentd-cloudwatch.state
               <parse>
                 @type json
               </parse>
             </source>
-
-            # If you want to monitor multiple log groups, define additional sources
-            <source>
-              @type cloudwatch_logs
-              @id in_cloudwatch_logs_2
-              @label @CLOUDWATCH
-              region us-east-1
-              tag cloudwatch.logs.ec2
-              log_group_name /aws/ec2/instance-logs  # Another log group
-              state_file /var/log/fluentd-cloudwatch-ec2.state
-              <parse>
-                @type json
-              </parse>
-            </source>
-
-            # expose metrics in prometheus format
-            <source>
-              @type prometheus
-              bind 0.0.0.0
-              port 24231
-              metrics_path /metrics
-            </source>
         - name: fileConfigs.02_filters\.conf
           value: |
-            <label @CLOUDWATCH>
-              <filter cloudwatch.logs.**>
-                @type record_transformer
-                <record>
-                  source_type cloudwatch
-                  cloud_provider aws
-                  log_group ${tag_parts[1]}
-                </record>
-              </filter>
-              <match **>
-                @type relabel
-                @label @OUTPUT
-              </match>
-            </label>
+            <filter cloudwatch.logs.**>
+              @type grep
+              <regexp>
+                key message
+                pattern .*
+              </regexp>
+            </filter>
         - name: fileConfigs.03_dispatch\.conf
           value: |
-            # Keeping minimal dispatch configuration for metrics
-            <label @DISPATCH>
-              <filter **>
-                @type prometheus
-                <metric>
-                  name fluentd_input_status_num_records_total
-                  type counter
-                  desc The total number of incoming records
-                  <labels>
-                    tag ${tag}
-                    hostname ${hostname}
-                  </labels>
-                </metric>
-              </filter>
-              <match **>
-                @type relabel
-                @label @OUTPUT
-              </match>
-            </label>
+            <match cloudwatch.logs.**>
+              @type relabel
+              @label @OUTPUT
+            </match>
         - name: fileConfigs.04_outputs\.conf
           value: |
             <label @OUTPUT>
-              # Send to Grafana Loki
               <match **>
                 @type loki
-                url "http://loki-gateway.monitoring:80"    # Change to your Loki endpoint
-                extra_labels {"job": "fluentd-cloudwatch"}
-                <label>
-                  source cloudwatch
-                  log_group ${log_group}
-                  aws_region ${record["awsRegion"]}
-                  cloud_provider aws
-                </label>
+                url "http://loki-gateway.monitoring:80"
                 <buffer>
                   @type memory
-                  chunk_limit_size 5MB
-                  flush_interval 5s
-                  flush_thread_count 8
-                  retry_max_interval 30
-                  retry_forever true
                 </buffer>
               </match>
             </label>
@@ -147,3 +87,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
+
