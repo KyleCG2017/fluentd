@@ -4,26 +4,26 @@ metadata:
   name: fluentd-application
   namespace: argocd
 spec:
-  project: default
+  project: argo-project
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
   source:
-    chart: fluentd
+    chart: "fluentd"
     repoURL: https://fluent.github.io/helm-charts
     targetRevision: 0.5.2
     helm:
       parameters:
         - name: image.repository
-          value: fluent/fluentd-kubernetes-daemonset
+          value: "fluentd"
         - name: image.tag
-          value: v1.18-debian-papertrail-1
+          value: "fluentd-kubernetes-daemonset-v1.4.2"
         - name: resources.requests.cpu
           value: "10m"
         - name: resources.requests.memory
-          value: 128Mi
+          value: "128Mi"
         - name: resources.limits.memory
-          value: 128Mi
+          value: "128Mi"
         - name: autoscaling.enabled
           value: "true"
         - name: autoscaling.minReplicas
@@ -35,15 +35,11 @@ spec:
         - name: serviceAccount.create
           value: "true"
         - name: serviceAccount.name
-          value: fluentd-role
+          value: "fluentd-role"
         - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
-          value: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>
-        - name: plugins[0]
-          value: fluent-plugin-grafana-loki
-        - name: plugins[1]
-          value: fluent-plugin-cloudwatch-logs
-        - name: plugins[2]
-          value: fluent-plugin-elasticsearch
+          value: "arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>"
+        - name: plugins
+          value: "fluent-plugin-grafana-loki,fluent-plugin-cloudwatch-logs" 
         - name: fileConfigs.01_sources.conf
           value: |
             <source>
@@ -52,12 +48,14 @@ spec:
               log_group_name awie-g3-d-kta-app-01-log
               tag cloudwatch.app
             </source>
+
             <source>
               @type cloudwatch_logs
               region us-east-1
               log_group_name awie-g3-d-kta-trans-01-log
               tag cloudwatch.trans
             </source>
+
         - name: fileConfigs.04_outputs.conf
           value: |
             <label @OUTPUT>
@@ -73,6 +71,7 @@ spec:
                   flush_interval 5s
                 </buffer>
               </match>
+
               <match cloudwatch.trans>
                 @type loki
                 url http://loki-query-frontend:3100
@@ -86,6 +85,7 @@ spec:
                 </buffer>
               </match>
             </label>
+
   syncPolicy:
     automated:
       prune: true
@@ -93,4 +93,3 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
-
