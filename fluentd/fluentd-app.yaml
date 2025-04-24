@@ -4,7 +4,7 @@ metadata:
   name: fluentd-application
   namespace: argocd
 spec:
-  project: argo-project
+  project: fefault
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
