@@ -38,8 +38,12 @@ spec:
           value: "fluentd-role"
         - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
           value: "arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>"
-        - name: plugins
-          value: "fluent-plugin-grafana-loki,fluent-plugin-cloudwatch-logs" 
+        - name: plugins[0]
+          value: fluent-plugin-grafana-loki
+        - name: plugins[1]
+          value: fluent-plugin-cloudwatch-logs
+        - name: plugins[2]
+          value: fluent-plugin-elasticsearch
         - name: fileConfigs.01_sources.conf
           value: |
             <source>
