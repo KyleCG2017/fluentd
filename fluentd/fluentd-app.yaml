@@ -42,37 +42,23 @@ spec:
           value: fluent-plugin-grafana-loki
         - name: plugins[1]
           value: fluent-plugin-cloudwatch-logs
-        - name: plugins[2]
-          value: fluent-plugin-elasticsearch
         - name: fileConfigs.01_sources\.conf
           value: |
-            ## logs from podman
+            ## CloudWatch Logs input
             <source>
-              @type tail
-              @id in_tail_container_logs
-              @label @KUBERNETES
-              path /var/log/containers/*.log
-              pos_file /var/log/fluentd-containers.log.pos
-              tag kubernetes.*
-              read_from_head true
+              @type cloudwatch_logs
+              @id in_cloudwatch_logs
+              @label @CLOUDWATCH
+              region us-east-1                # Change to your AWS region
+              tag cloudwatch.logs
+              log_group_name_prefix /aws/     # Adjust to match your CloudWatch log groups
+              use_log_group_name_prefix true
+              state_file /var/log/fluentd-cloudwatch.state
               <parse>
-                @type multi_format
-                <pattern>
-                  format json
-                  time_key time
-                  time_type string
-                  time_format "%Y-%m-%dT%H:%M:%S.%NZ"
-                  keep_time_key false
-                </pattern>
-                <pattern>
-                  format regexp
-                  expression /^(?<time>.+) (?<stream>stdout|stderr)( (.))? (?<log>.*)$/
-                  time_format '%Y-%m-%dT%H:%M:%S.%NZ'
-                  keep_time_key false
-                </pattern>
+                @type json
               </parse>
-              emit_unmatched_lines true
             </source>
+            
             # expose metrics in prometheus format
             <source>
               @type prometheus
@@ -82,30 +68,23 @@ spec:
             </source>
         - name: fileConfigs.02_filters\.conf
           value: |
-            <label @KUBERNETES>
-              <match kubernetes.var.log.containers.fluentd**>
-                @type relabel
-                @label @FLUENT_LOG
-              </match>
-              # <match kubernetes.var.log.containers.**_kube-system_**>
-              #   @type null
-              #   @id ignore_kube_system_logs
-              # </match>
-              <filter kubernetes.**>
-                @type kubernetes_metadata
-                @id filter_kube_metadata
-                skip_labels false
-                skip_container_metadata false
-                skip_namespace_metadata true
-                skip_master_url true
+            <label @CLOUDWATCH>
+              <filter cloudwatch.logs.**>
+                @type record_transformer
+                <record>
+                  source_type cloudwatch
+                  cloud_provider aws
+                  log_group ${tag_parts[1]}
+                </record>
               </filter>
               <match **>
                 @type relabel
-                @label @DISPATCH
+                @label @OUTPUT
               </match>
             </label>
         - name: fileConfigs.03_dispatch\.conf
           value: |
+            # Keeping minimal dispatch configuration for metrics
             <label @DISPATCH>
               <filter **>
                 @type prometheus
@@ -127,15 +106,25 @@ spec:
         - name: fileConfigs.04_outputs\.conf
           value: |
             <label @OUTPUT>
+              # Send to Grafana Loki
               <match **>
-                @type elasticsearch
-                host "elasticsearch-master"
-                port 9200
-                path ""
-                user elastic
-                password changeme
-                # Don't wait for elastic to start up.
-                verify_es_version_at_startup false
+                @type loki
+                url "http://loki-gateway.monitoring:80"    # Change to your Loki endpoint
+                extra_labels {"job": "fluentd-cloudwatch"}
+                <label>
+                  source cloudwatch
+                  log_group ${log_group}
+                  aws_region ${record["awsRegion"]}
+                  cloud_provider aws
+                </label>
+                <buffer>
+                  @type memory
+                  chunk_limit_size 5MB
+                  flush_interval 5s
+                  flush_thread_count 8
+                  retry_max_interval 30
+                  retry_forever true
+                </buffer>
               </match>
             </label>
   syncPolicy:
