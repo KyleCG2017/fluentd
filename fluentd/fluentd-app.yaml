@@ -44,42 +44,129 @@ spec:
           value: fluent-plugin-cloudwatch-logs
         - name: fileConfigs.01_sources\.conf
           value: |
+            ## CloudWatch Logs input for KTA logs
             <source>
               @type cloudwatch_logs
+              @id in_cloudwatch_logs_kta
+              @label @CLOUDWATCH
               region us-east-1
-              tag cloudwatch.logs
-              log_group_name /aws/lambda/my-function
-              state_file /var/log/fluentd-cloudwatch.state
+              tag cloudwatch.logs.kta
+              log_group_name /aws/lambda/kta-log-group   # Specify your log group for KTA
+              log_stream_name "kta-log-stream"           # Specify the log stream name
+              state_file /var/log/fluentd-cloudwatch-kta.state
               <parse>
                 @type json
               </parse>
             </source>
+
+            ## CloudWatch Logs input for TRANS logs
+            <source>
+              @type cloudwatch_logs
+              @id in_cloudwatch_logs_trans
+              @label @CLOUDWATCH
+              region us-east-1
+              tag cloudwatch.logs.trans
+              log_group_name /aws/lambda/trans-log-group  # Specify your log group for TRANS
+              log_stream_name "trans-log-stream"          # Specify the log stream name
+              state_file /var/log/fluentd-cloudwatch-trans.state
+              <parse>
+                @type json
+              </parse>
+            </source>
+
         - name: fileConfigs.02_filters\.conf
           value: |
-            <filter cloudwatch.logs.**>
-              @type grep
-              <regexp>
-                key message
-                pattern .*
-              </regexp>
-            </filter>
+            <label @CLOUDWATCH>
+              <filter cloudwatch.logs.kta.**>
+                @type record_transformer
+                <record>
+                  source_type cloudwatch
+                  cloud_provider aws
+                  log_group ${tag_parts[1]}
+                </record>
+              </filter>
+              <filter cloudwatch.logs.trans.**>
+                @type record_transformer
+                <record>
+                  source_type cloudwatch
+                  cloud_provider aws
+                  log_group ${tag_parts[1]}
+                </record>
+              </filter>
+              <match **>
+                @type relabel
+                @label @OUTPUT
+              </match>
+            </label>
+
         - name: fileConfigs.03_dispatch\.conf
           value: |
-            <match cloudwatch.logs.**>
-              @type relabel
-              @label @OUTPUT
-            </match>
+            # Dispatch configuration for metrics
+            <label @DISPATCH>
+              <filter **>
+                @type prometheus
+                <metric>
+                  name fluentd_input_status_num_records_total
+                  type counter
+                  desc The total number of incoming records
+                  <labels>
+                    tag ${tag}
+                    hostname ${hostname}
+                  </labels>
+                </metric>
+              </filter>
+              <match **>
+                @type relabel
+                @label @OUTPUT
+              </match>
+            </label>
+
         - name: fileConfigs.04_outputs\.conf
           value: |
             <label @OUTPUT>
-              <match **>
+              ## Send KTA logs to Grafana Loki
+              <match cloudwatch.logs.kta.**>
                 @type loki
-                url "http://loki-gateway.monitoring:80"
+                url "http://loki-gateway.monitoring:80"  # Change to your Loki endpoint
+                extra_labels {"job": "fluentd-kta"}
+                <label>
+                  source cloudwatch
+                  log_group ${log_group}
+                  aws_region ${record["awsRegion"]}
+                  cloud_provider aws
+                </label>
                 <buffer>
                   @type memory
+                  chunk_limit_size 5MB
+                  flush_interval 5s
+                  flush_thread_count 8
+                  retry_max_interval 30
+                  retry_forever true
+                </buffer>
+              </match>
+
+              ## Send TRANS logs to Grafana Loki
+              <match cloudwatch.logs.trans.**>
+                @type loki
+                url "http://loki-gateway.monitoring:80"  # Change to your Loki endpoint
+                extra_labels {"job": "fluentd-trans"}
+                <label>
+                  source cloudwatch
+                  log_group ${log_group}
+                  aws_region ${record["awsRegion"]}
+                  cloud_provider aws
+                </label>
+                <buffer>
+                  @type memory
+                  chunk_limit_size 5MB
+                  flush_interval 5s
+                  flush_thread_count 8
+                  retry_max_interval 30
+                  retry_forever true
                 </buffer>
               </match>
             </label>
+
   syncPolicy:
     automated:
       prune: true
