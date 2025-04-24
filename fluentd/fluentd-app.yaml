@@ -42,7 +42,7 @@ spec:
           value: fluent-plugin-grafana-loki
         - name: plugins[1]
           value: fluent-plugin-cloudwatch-logs
-        - name: fileConfigs.01_sources\.conf
+        - name: fileConfigs.custom\.conf
           value: |
             <source>
               @type cloudwatch_logs
@@ -51,8 +51,7 @@ spec:
               log_group_name /aws/lambda/my-function
               state_file /var/log/fluentd-cloudwatch.state
             </source>
-        - name: fileConfigs.02_outputs\.conf
-          value: |
+            
             <match cloudwatch.logs.**>
               @type loki
               url "http://loki-gateway.monitoring:80"
@@ -62,6 +61,13 @@ spec:
                 log_group ${tag_parts[1]}
               </label>
             </match>
+            
+            # This is necessary to suppress default configuration errors
+            <label @FLUENT_LOG>
+              <match **>
+                @type null
+              </match>
+            </label>
   syncPolicy:
     automated:
       prune: true
