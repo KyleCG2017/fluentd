@@ -46,7 +46,7 @@ spec:
           value: fluent-plugin-elasticsearch
         # Pass the configs as strings
         - name: fileConfigs.01_sources.conf
-          value: | -
+          value: |
             ## Basic Test Source - Tail logs
             <source>
               @type tail
@@ -60,7 +60,7 @@ spec:
               </parse>
             </source>
         - name: fileConfigs.04_outputs.conf
-          value: | -
+          value: |
             ## Output to stdout (console)
             <label @OUTPUT>
               <match test.**>
