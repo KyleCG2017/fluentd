@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fluentd-application
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: monitoring
+  source:
+    chart: fluentd
+    repoURL: https://fluent.github.io/helm-charts
+    targetRevision: 0.5.2
+    helm:
+      parameters:
+        - name: image.repository
+          value: fluent/fluentd-kubernetes-daemonset
+        - name: image.tag
+          value: v1.18-debian-papertrail-1
+        - name: resources.requests.cpu
+          value: "10m"
+        - name: resources.requests.memory
+          value: 128Mi
+        - name: resources.limits.memory
+          value: 128Mi
+        - name: autoscaling.enabled
+          value: "true"
+        - name: autoscaling.minReplicas
+          value: "2"
+        - name: autoscaling.maxReplicas
+          value: "4"
+        - name: autoscaling.targetCPUUtilizationPercentage
+          value: "80"
+        - name: serviceAccount.create
+          value: "true"
+        - name: serviceAccount.name
+          value: fluentd-role
+        - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
+          value: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>
+        - name: plugins[0]
+          value: fluent-plugin-grafana-loki
+        - name: plugins[1]
+          value: fluent-plugin-cloudwatch-logs
+        - name: plugins[2]
+          value: fluent-plugin-elasticsearch
+      fileParameters:
+        - name: fileConfigs.01_sources.conf
+          path: config/01_sources.conf
+        - name: fileConfigs.04_outputs.conf
+          path: config/04_outputs.conf
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+
