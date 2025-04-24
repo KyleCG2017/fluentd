@@ -75,51 +75,10 @@ spec:
             </source>
 
         - name: fileConfigs.02_filters\.conf
-          value: |
-            <label @CLOUDWATCH>
-              <filter cloudwatch.logs.kta.**>
-                @type record_transformer
-                <record>
-                  source_type cloudwatch
-                  cloud_provider aws
-                  log_group ${tag_parts[1]}
-                </record>
-              </filter>
-              <filter cloudwatch.logs.trans.**>
-                @type record_transformer
-                <record>
-                  source_type cloudwatch
-                  cloud_provider aws
-                  log_group ${tag_parts[1]}
-                </record>
-              </filter>
-              <match **>
-                @type relabel
-                @label @OUTPUT
-              </match>
-            </label>
+          value: ""  # This section is now empty, no filters applied
 
         - name: fileConfigs.03_dispatch\.conf
-          value: |
-            # Dispatch configuration for metrics
-            <label @DISPATCH>
-              <filter **>
-                @type prometheus
-                <metric>
-                  name fluentd_input_status_num_records_total
-                  type counter
-                  desc The total number of incoming records
-                  <labels>
-                    tag ${tag}
-                    hostname ${hostname}
-                  </labels>
-                </metric>
-              </filter>
-              <match **>
-                @type relabel
-                @label @OUTPUT
-              </match>
-            </label>
+          value: ""  # This section is now empty, no dispatching applied
 
         - name: fileConfigs.04_outputs\.conf
           value: |
