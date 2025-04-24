@@ -13,40 +13,32 @@ spec:
     repoURL: https://fluent.github.io/helm-charts
     targetRevision: 0.5.2
     helm:
-      parameters:
-        - name: image.repository
-          value: fluent/fluentd-kubernetes-daemonset
-        - name: image.tag
-          value: v1.18-debian-papertrail-1
-        - name: resources.requests.cpu
-          value: "10m"
-        - name: resources.requests.memory
-          value: 128Mi
-        - name: resources.limits.memory
-          value: 128Mi
-        - name: autoscaling.enabled
-          value: "true"
-        - name: autoscaling.minReplicas
-          value: "1"
-        - name: autoscaling.maxReplicas
-          value: "2"
-        - name: autoscaling.targetCPUUtilizationPercentage
-          value: "80"
-        - name: serviceAccount.create
-          value: "true"
-        - name: serviceAccount.name
-          value: fluentd-role
-        - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
-          value: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>
-        - name: plugins[0]
-          value: fluent-plugin-grafana-loki
-        - name: plugins[1]
-          value: fluent-plugin-cloudwatch-logs
-        - name: plugins[2]
-          value: fluent-plugin-elasticsearch
-        # Providing fileConfigs as strings
-        - name: fileConfigs.01_sources.conf
-          value: |
+      values: |
+        image:
+          repository: fluent/fluentd-kubernetes-daemonset
+          tag: v1.18-debian-papertrail-1
+        resources:
+          requests:
+            cpu: 10m
+            memory: 128Mi
+          limits:
+            memory: 128Mi
+        autoscaling:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 2
+          targetCPUUtilizationPercentage: 80
+        serviceAccount:
+          create: true
+          name: fluentd-role
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>
+        plugins:
+          - fluent-plugin-grafana-loki
+          - fluent-plugin-cloudwatch-logs
+          - fluent-plugin-elasticsearch
+        fileConfigs:
+          "01_sources.conf": |
             <source>
               @type tail
               @id in_tail_test_logs
@@ -59,14 +51,12 @@ spec:
                 @type none
               </parse>
             </source>
-        - name: fileConfigs.02_filters.conf
-          value: |
+          "02_filters.conf": |
             <label @KUBERNETES>
               <match kubernetes.var.log.containers.fluentd**>
                 @type relabel
                 @label @FLUENT_LOG
               </match>
-
               <filter kubernetes.**>
                 @type record_transformer
                 enable_ruby
@@ -76,14 +66,12 @@ spec:
                 </record>
                 remove_keys $.kubernetes.host,log
               </filter>
-
               <match **>
                 @type relabel
                 @label @DISPATCH
               </match>
             </label>
-        - name: fileConfigs.03_dispatch.conf
-          value: |
+          "03_dispatch.conf": |
             <label @DISPATCH>
               <filter **>
                 @type prometheus
@@ -97,14 +85,12 @@ spec:
                   </labels>
                 </metric>
               </filter>
-
               <match **>
                 @type relabel
                 @label @OUTPUT
               </match>
             </label>
-        - name: fileConfigs.04_outputs.conf
-          value: |
+          "04_outputs.conf": |
             <label @OUTPUT>
               <match test.**>
                 @type stdout
@@ -117,4 +103,3 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
-
