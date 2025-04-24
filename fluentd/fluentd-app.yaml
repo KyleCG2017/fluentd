@@ -9,21 +9,21 @@ spec:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
   source:
-    chart: "fluentd"
+    chart: fluentd
     repoURL: https://fluent.github.io/helm-charts
     targetRevision: 0.5.2
     helm:
       parameters:
         - name: image.repository
-          value: "fluent/fluentd-kubernetes-daemonset"
+          value: fluent/fluentd-kubernetes-daemonset
         - name: image.tag
-          value: "v1.18-debian-papertrail-1"
+          value: v1.18-debian-papertrail-1
         - name: resources.requests.cpu
           value: "10m"
         - name: resources.requests.memory
-          value: "128Mi"
+          value: 128Mi
         - name: resources.limits.memory
-          value: "128Mi"
+          value: 128Mi
         - name: autoscaling.enabled
           value: "true"
         - name: autoscaling.minReplicas
@@ -35,15 +35,26 @@ spec:
         - name: serviceAccount.create
           value: "true"
         - name: serviceAccount.name
-          value: "fluentd-role"
+          value: fluentd-role
         - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
-          value: "arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>"
+          value: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>
         - name: plugins[0]
           value: fluent-plugin-grafana-loki
         - name: plugins[1]
           value: fluent-plugin-cloudwatch-logs
         - name: plugins[2]
           value: fluent-plugin-elasticsearch
+        - name: fileConfigs.01_sources.conf
+          value: |-
+            <source>
+              @type dummy
+              tag dummy.test
+            </source>
+        - name: fileConfigs.04_outputs.conf
+          value: |-
+            <match dummy.test>
+              @type stdout
+            </match>
   syncPolicy:
     automated:
       prune: true
@@ -51,3 +62,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
+
