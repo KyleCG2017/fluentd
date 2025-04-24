@@ -62,12 +62,6 @@ spec:
               </label>
             </match>
             
-            # This is necessary to suppress default configuration errors
-            <label @FLUENT_LOG>
-              <match **>
-                @type null
-              </match>
-            </label>
   syncPolicy:
     automated:
       prune: true
