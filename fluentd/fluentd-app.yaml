@@ -4,7 +4,7 @@ metadata:
   name: fluentd-application
   namespace: argocd
 spec:
-  project: default
+  project: argo-project
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
@@ -45,42 +45,20 @@ spec:
 
         - name: fileConfigs.01_sources\.conf
           value: |
-            ## CloudWatch Logs input for KTA logs
             <source>
               @type cloudwatch_logs
-              @id in_cloudwatch_logs_kta
-              @label @CLOUDWATCH
               region us-east-1
-              tag cloudwatch.logs.kta
-              log_group_name /aws/lambda/kta-log-group
-              log_stream_name kta-log-stream
-              <storage>
-                @type local
-                persistent true
-                path /var/log/fluentd/cloudwatch_kta.db
-              </storage>
-              <parse>
-                @type json
-              </parse>
+              log_group_name awie-g3-d-kta-app-01-log
+              log_stream_name "trans-log-stream"
+              tag cloudwatch.app
             </source>
 
-            ## CloudWatch Logs input for TRANS logs
             <source>
               @type cloudwatch_logs
-              @id in_cloudwatch_logs_trans
-              @label @CLOUDWATCH
               region us-east-1
-              tag cloudwatch.logs.trans
-              log_group_name /aws/lambda/trans-log-group
-              log_stream_name trans-log-stream
-              <storage>
-                @type local
-                persistent true
-                path /var/log/fluentd/cloudwatch_trans.db
-              </storage>
-              <parse>
-                @type json
-              </parse>
+              log_group_name awie-g3-d-kta-trans-01-log
+              log_stream_name "trans-log-stream"
+              tag cloudwatch.trans
             </source>
 
         - name: fileConfigs.02_filters\.conf
@@ -97,50 +75,33 @@ spec:
 
         - name: fileConfigs.04_outputs\.conf
           value: |
-            <label @OUTPUT>
-              ## Send KTA logs to Grafana Loki
-              <match cloudwatch.logs.kta.**>
+         <label @OUTPUT>
+              <match cloudwatch.app>
                 @type loki
-                url "http://loki-gateway.monitoring:80"
-                extra_labels {"job": "fluentd-kta"}
+                url http://loki-query-frontend:3100
                 <label>
-                  source cloudwatch
-                  log_group ${log_group}
-                  aws_region ${record["awsRegion"]}
-                  cloud_provider aws
+                  app fluentd
+                  name awie-g3-d-kta-app-01-log
+                  namespace monitoring
                 </label>
                 <buffer>
-                  @type memory
-                  chunk_limit_size 5MB
                   flush_interval 5s
-                  flush_thread_count 8
-                  retry_max_interval 30
-                  retry_forever true
                 </buffer>
               </match>
 
-              ## Send TRANS logs to Grafana Loki
-              <match cloudwatch.logs.trans.**>
+              <match cloudwatch.trans>
                 @type loki
-                url "http://loki-gateway.monitoring:80"
-                extra_labels {"job": "fluentd-trans"}
+                url http://loki-query-frontend:3100
                 <label>
-                  source cloudwatch
-                  log_group ${log_group}
-                  aws_region ${record["awsRegion"]}
-                  cloud_provider aws
+                  app fluentd
+                  name awie-g3-d-kta-trans-01-log
+                  namespace monitoring
                 </label>
                 <buffer>
-                  @type memory
-                  chunk_limit_size 5MB
                   flush_interval 5s
-                  flush_thread_count 8
-                  retry_max_interval 30
-                  retry_forever true
                 </buffer>
               </match>
             </label>
-
   syncPolicy:
     automated:
       prune: true
@@ -148,4 +109,3 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
-
