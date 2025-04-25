@@ -16,9 +16,10 @@ spec:
       parameters:
         # Use the debian-based image which has better plugin installation support
         - name: image.repository
-          value: fluent/fluentd
+          value: ghcr.io/fluent/fluentd
         - name: image.tag
-          value: v1.16-debian-1   # Use Debian-based image
+          value: v1.16.2-debian-1.0
+        # Use Debian-based image
         - name: resources.requests.cpu
           value: "10m"
         - name: resources.requests.memory
