@@ -4,7 +4,7 @@ metadata:
   name: fluentd-application
   namespace: argocd
 spec:
-  project: default
+  project: argo-project
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
@@ -15,9 +15,9 @@ spec:
     helm:
       parameters:
         - name: image.repository
-          value: fluent/fluentd-kubernetes-daemonset
+          value: fluent/fluentd
         - name: image.tag
-          value: v1.18-debian-papertrail-1
+          value: v1.16-debian
         - name: resources.requests.cpu
           value: "10m"
         - name: resources.requests.memory
@@ -49,7 +49,8 @@ spec:
               @type cloudwatch_logs
               region us-east-1
               log_group_name awie-g3-d-kta-app-01-log
-              log_stream_name "trans-log-stream"
+              log_stream_name trans-log-stream
+              aws_sts_role_arn arn:aws:iam::727594547879:role/awie-iamr-ngdev-api-fluentd
               tag cloudwatch.app
             </source>
 
@@ -57,7 +58,8 @@ spec:
               @type cloudwatch_logs
               region us-east-1
               log_group_name awie-g3-d-kta-trans-01-log
-              log_stream_name "trans-log-stream"
+              log_stream_name trans-log-stream
+              aws_sts_role_arn arn:aws:iam::727594547879:role/awie-iamr-ngdev-api-fluentd
               tag cloudwatch.trans
             </source>
 
@@ -104,4 +106,3 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
-
