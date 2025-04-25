@@ -27,9 +27,9 @@ spec:
         - name: autoscaling.enabled
           value: "true"
         - name: autoscaling.minReplicas
-          value: "1"
+          value: 1
         - name: autoscaling.maxReplicas
-          value: "2"
+          value: 2
         - name: autoscaling.targetCPUUtilizationPercentage
           value: "80"
         - name: serviceAccount.create
