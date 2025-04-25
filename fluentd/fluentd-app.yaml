@@ -27,7 +27,7 @@ spec:
         - name: autoscaling.enabled
           value: "false"  # Disable autoscaling for 1 pod
         - name: autoscaling.minReplicas
-          value: "1"  # Ensure only 1 pod is created
+          value: 1  # Ensure only 1 pod is created
         - name: autoscaling.maxReplicas
           value: 3
 
