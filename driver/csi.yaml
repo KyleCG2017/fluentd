@@ -1,0 +1,89 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keyvault-secrets
+  namespace: argocd
+spec:
+  destination:
+    namespace: monitoring
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    chart: csi-secrets-store-provider-azure
+    repoURL: https://azure.github.io/secrets-store-csi-driver-provider-azure/charts
+    targetRevision: 1.7.0
+    helm:
+      values: |
+        # Azure Key Vault Provider Config
+        constructPEMChain: true
+        writeCertAndKeyInSeparateFiles: false
+        metricsAddr: 8898
+        
+        # Linux node configuration
+        linux:
+          enabled: true
+          image:
+            repository: mcr.microsoft.com/oss/v2/azure/secrets-store/provider-azure
+            pullPolicy: IfNotPresent
+            tag: v1.7.0
+          resources:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+            limits:
+              cpu: 50m
+              memory: 100Mi
+          nodeSelector: {}
+          tolerations:
+            - operator: "Exists"
+          podLabels: {}
+          podAnnotations: {}
+          customUserAgent: ""
+          healthzPort: "8989"
+          healthzPath: "/healthz"
+          healthzTimeout: "5s"
+          kubeletRootDir: /var/lib/kubelet
+          providersDir: /var/run/secrets-store-csi-providers
+          
+        # Windows node configuration (disabled by default)
+        windows:
+          enabled: false
+          
+        # CSI Driver configuration
+        secrets-store-csi-driver:
+          install: true
+          fullnameOverride: secrets-store-csi-driver
+          
+          # Linux driver settings
+          linux:
+            enabled: true
+            kubeletRootDir: /var/lib/kubelet
+            metricsAddr: ":8080"
+            image:
+              repository: mcr.microsoft.com/oss/v2/kubernetes-csi/secrets-store/driver
+              pullPolicy: IfNotPresent
+              tag: v1.5.0
+          
+          # Secret rotation settings
+          enableSecretRotation: true
+          rotationPollInterval: "5m"
+          filteredWatchSecret: true
+          
+          # Secret sync settings
+          syncSecret:
+            enabled: true
+            
+          # Token requests for Azure AD workload identity
+          tokenRequests:
+            - audience: api://AzureADTokenExchange
+          
+        # RBAC settings
+        rbac:
+          install: true
+          pspEnabled: false
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
