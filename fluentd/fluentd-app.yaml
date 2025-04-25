@@ -15,7 +15,7 @@ spec:
     helm:
       parameters:
         - name: image.repository
-          value: ghcr.io/fluent/fluentd
+          value: fluent/fluentd
         - name: image.tag
           value: v1.16.2-debian-1.0
         - name: resources.requests.cpu
