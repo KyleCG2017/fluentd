@@ -15,9 +15,9 @@ spec:
     helm:
       parameters:
         - name: image.repository
-          value: fluent/fluentd
+          value: fluent/fluentd-kubernetes-daemonset
         - name: image.tag
-          value: v1.16-debian
+          value: v1.18-debian-cloudwatch-1
         - name: resources.requests.cpu
           value: "10m"
         - name: resources.requests.memory
