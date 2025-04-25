@@ -27,11 +27,11 @@ spec:
         - name: autoscaling.enabled
           value: "true"
         - name: autoscaling.minReplicas
-          value: 1
+          value: "1"  # String value
         - name: autoscaling.maxReplicas
-          value: 2
+          value: "2"  # String value
         - name: autoscaling.targetCPUUtilizationPercentage
-          value: "80"
+          value: "80"  # String value
         - name: serviceAccount.create
           value: "true"
         - name: serviceAccount.name
@@ -86,23 +86,5 @@ spec:
               </match>
 
               <match cloudwatch.trans>
-                @type loki
-                url http://loki-query-frontend:3100
-                <label>
-                  app fluentd
-                  name awie-g3-d-kta-trans-01-log
-                  namespace monitoring
-                </label>
-                <buffer>
-                  flush_interval 5s
-                </buffer>
-              </match>
-            </label>
+                @type lok
 
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
