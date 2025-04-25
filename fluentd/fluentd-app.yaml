@@ -4,7 +4,7 @@ metadata:
   name: fluentd-application
   namespace: argocd
 spec:
-  project: default
+  project: argo-project
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
@@ -27,11 +27,11 @@ spec:
         - name: autoscaling.enabled
           value: "true"
         - name: autoscaling.minReplicas
-          value: "1"  # String value
+          value: "1"
         - name: autoscaling.maxReplicas
-          value: "2"  # String value
+          value: "2"
         - name: autoscaling.targetCPUUtilizationPercentage
-          value: "80"  # String value
+          value: "80"
         - name: serviceAccount.create
           value: "true"
         - name: serviceAccount.name
@@ -86,5 +86,23 @@ spec:
               </match>
 
               <match cloudwatch.trans>
-                @type lok
+                @type loki
+                url http://loki-query-frontend:3100
+                <label>
+                  app fluentd
+                  name awie-g3-d-kta-trans-01-log
+                  namespace monitoring
+                </label>
+                <buffer>
+                  flush_interval 5s
+                </buffer>
+              </match>
+            </label>
 
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
