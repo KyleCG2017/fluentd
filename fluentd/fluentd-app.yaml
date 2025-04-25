@@ -51,6 +51,7 @@ spec:
               log_group_name awie-g3-d-kta-app-01-log
               log_stream_name "trans-log-stream"
               tag cloudwatch.app
+              @label @CLOUDWATCH
             </source>
 
             <source>
@@ -59,6 +60,7 @@ spec:
               log_group_name awie-g3-d-kta-trans-01-log
               log_stream_name "trans-log-stream"
               tag cloudwatch.trans
+              @label @CLOUDWATCH
             </source>
 
         - name: fileConfigs.02_filters\.conf
@@ -75,7 +77,7 @@ spec:
 
         - name: fileConfigs.04_outputs\.conf
           value: |
-         <label @OUTPUT>
+            <label @OUTPUT>
               <match cloudwatch.app>
                 @type loki
                 url http://loki-query-frontend:3100
@@ -102,6 +104,7 @@ spec:
                 </buffer>
               </match>
             </label>
+
   syncPolicy:
     automated:
       prune: true
@@ -109,3 +112,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
+
