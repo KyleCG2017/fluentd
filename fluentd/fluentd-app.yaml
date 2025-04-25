@@ -17,7 +17,7 @@ spec:
         - name: image.repository
           value: fluent/fluentd
         - name: image.tag
-          value: latest
+          value: v1.16-debian
         - name: resources.requests.cpu
           value: "10m"
         - name: resources.requests.memory
@@ -25,13 +25,7 @@ spec:
         - name: resources.limits.memory
           value: 128Mi
         - name: autoscaling.enabled
-          value: "true"
-        - name: autoscaling.minReplicas
-          value: "1"
-        - name: autoscaling.maxReplicas
-          value: "2"
-        - name: autoscaling.targetCPUUtilizationPercentage
-          value: "80"
+          value: "false"  # Disable autoscaling for 1 pod
         - name: serviceAccount.create
           value: "true"
         - name: serviceAccount.name
@@ -42,7 +36,10 @@ spec:
           value: fluent-plugin-grafana-loki
         - name: plugins[1]
           value: fluent-plugin-cloudwatch-logs
+        - name: kind
+          value: Deployment  # Add this line to specify Deployment
 
+        # Fluentd Source Config for CloudWatch
         - name: fileConfigs.01_sources\.conf
           value: |
             <source>
@@ -64,45 +61,14 @@ spec:
             </source>
 
         - name: fileConfigs.02_filters\.conf
-          value: ""
+          value: ""  # No filters needed
 
         - name: fileConfigs.03_dispatch\.conf
-          value: ""
+          value: ""  # No dispatch needed
 
+        # Fluentd Output Configuration for Grafana Loki
         - name: fileConfigs.04_outputs\.conf
           value: |
             <label @OUTPUT>
               <match cloudwatch.app>
-                @type loki
-                url http://loki-query-frontend:3100
-                <label>
-                  app fluentd
-                  name awie-g3-d-kta-app-01-log
-                  namespace monitoring
-                </label>
-                <buffer>
-                  flush_interval 5s
-                </buffer>
-              </match>
 
-              <match cloudwatch.trans>
-                @type loki
-                url http://loki-query-frontend:3100
-                <label>
-                  app fluentd
-                  name awie-g3-d-kta-trans-01-log
-                  namespace monitoring
-                </label>
-                <buffer>
-                  flush_interval 5s
-                </buffer>
-              </match>
-            </label>
-
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
