@@ -45,7 +45,7 @@ spec:
 
         - name: fileConfigs.01_sources\.conf
           value: |
-            ## CloudWatch Logs input for KTA
+            ## CloudWatch Logs input for KTA logs
             <source>
               @type cloudwatch_logs
               @id in_cloudwatch_logs_kta
@@ -53,16 +53,18 @@ spec:
               region us-east-1
               tag cloudwatch.logs.kta
               log_group_name /aws/lambda/kta-log-group
+              log_stream_name kta-log-stream
               <storage>
                 @type local
-                path /var/log/fluentd-cloudwatch-kta.state
+                persistent true
+                path /var/log/fluentd/cloudwatch_kta.db
               </storage>
               <parse>
                 @type json
               </parse>
             </source>
 
-            ## CloudWatch Logs input for TRANS
+            ## CloudWatch Logs input for TRANS logs
             <source>
               @type cloudwatch_logs
               @id in_cloudwatch_logs_trans
@@ -70,9 +72,11 @@ spec:
               region us-east-1
               tag cloudwatch.logs.trans
               log_group_name /aws/lambda/trans-log-group
+              log_stream_name trans-log-stream
               <storage>
                 @type local
-                path /var/log/fluentd-cloudwatch-trans.state
+                persistent true
+                path /var/log/fluentd/cloudwatch_trans.db
               </storage>
               <parse>
                 @type json
@@ -80,7 +84,13 @@ spec:
             </source>
 
         - name: fileConfigs.02_filters\.conf
-          value: ""
+          value: |
+            <label @CLOUDWATCH>
+              <match **>
+                @type relabel
+                @label @OUTPUT
+              </match>
+            </label>
 
         - name: fileConfigs.03_dispatch\.conf
           value: ""
