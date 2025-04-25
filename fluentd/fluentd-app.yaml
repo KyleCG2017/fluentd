@@ -26,8 +26,11 @@ spec:
           value: 128Mi
         - name: autoscaling.enabled
           value: "false"  # Disable autoscaling for 1 pod
-        - name: replicas
+        - name: autoscaling.minReplicas
           value: "1"  # Ensure only 1 pod is created
+        - name: autoscaling.maxReplicas
+          value: 3
+
         - name: serviceAccount.create
           value: "true"
         - name: serviceAccount.name
