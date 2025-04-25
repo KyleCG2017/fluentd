@@ -26,6 +26,8 @@ spec:
           value: 128Mi
         - name: autoscaling.enabled
           value: "false"  # Disable autoscaling for 1 pod
+        - name: replicas
+          value: "1"  # Ensure only 1 pod is created
         - name: serviceAccount.create
           value: "true"
         - name: serviceAccount.name
@@ -37,7 +39,7 @@ spec:
         - name: plugins[1]
           value: fluent-plugin-cloudwatch-logs
         - name: kind
-          value: Deployment  # Add this line to specify Deployment
+          value: Deployment  # Ensure Deployment type
 
         # Fluentd Source Config for CloudWatch
         - name: fileConfigs.01_sources\.conf
@@ -60,15 +62,48 @@ spec:
               tag cloudwatch.trans
             </source>
 
+        # Empty filter config as per your request
         - name: fileConfigs.02_filters\.conf
-          value: ""  # No filters needed
+          value: ""  
 
         - name: fileConfigs.03_dispatch\.conf
-          value: ""  # No dispatch needed
+          value: ""  
 
         # Fluentd Output Configuration for Grafana Loki
         - name: fileConfigs.04_outputs\.conf
           value: |
             <label @OUTPUT>
               <match cloudwatch.app>
+                @type loki
+                url http://loki-query-frontend:3100
+                <label>
+                  app fluentd
+                  name awie-g3-d-kta-app-01-log
+                  namespace monitoring
+                </label>
+                <buffer>
+                  flush_interval 5s
+                </buffer>
+              </match>
+
+              <match cloudwatch.trans>
+                @type loki
+                url http://loki-query-frontend:3100
+                <label>
+                  app fluentd
+                  name awie-g3-d-kta-trans-01-log
+                  namespace monitoring
+                </label>
+                <buffer>
+                  flush_interval 5s
+                </buffer>
+              </match>
+            </label>
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
 
