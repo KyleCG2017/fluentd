@@ -64,13 +64,7 @@ spec:
             </source>
 
         - name: fileConfigs.02_filters\.conf
-          value: |
-            <label @CLOUDWATCH>
-              <match **>
-                @type relabel
-                @label @OUTPUT
-              </match>
-            </label>
+          value: ""
 
         - name: fileConfigs.03_dispatch\.conf
           value: ""
