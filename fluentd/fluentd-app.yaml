@@ -51,7 +51,6 @@ spec:
               log_group_name awie-g3-d-kta-app-01-log
               log_stream_name "trans-log-stream"
               tag cloudwatch.app
-              @label @CLOUDWATCH
             </source>
 
             <source>
@@ -60,7 +59,6 @@ spec:
               log_group_name awie-g3-d-kta-trans-01-log
               log_stream_name "trans-log-stream"
               tag cloudwatch.trans
-              @label @CLOUDWATCH
             </source>
 
         - name: fileConfigs.02_filters\.conf
