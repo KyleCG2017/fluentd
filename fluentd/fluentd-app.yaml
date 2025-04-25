@@ -42,47 +42,51 @@ spec:
           value: fluent-plugin-grafana-loki
         - name: plugins[1]
           value: fluent-plugin-cloudwatch-logs
+
+        # File Configs
         - name: fileConfigs.01_sources\.conf
           value: |
-            ## CloudWatch Logs input
             <source>
               @type cloudwatch_logs
-              @id in_cloudwatch_logs
-              @label @CLOUDWATCH
-              region us-east-1                # Change to your AWS region
-              tag cloudwatch.logs
-              log_group_name /aws/lambda/my-function  # Specify an actual log group name
-              state_file /var/log/fluentd-cloudwatch.state
-              <parse>
-                @type json
-              </parse>
-            </source>
-
-            # If you want to monitor multiple log groups, define additional sources
-            <source>
-              @type cloudwatch_logs
-              @id in_cloudwatch_logs_2
               @label @CLOUDWATCH
               region us-east-1
-              tag cloudwatch.logs.ec2
-              log_group_name /aws/ec2/instance-logs  # Another log group
-              state_file /var/log/fluentd-cloudwatch-ec2.state
+              log_group_name awie-g3-d-kta-app-01-log
+              tag cloudwatch.app
+              <storage>
+                @type file
+                path /var/log/fluentd-cloudwatch-app.state
+              </storage>
               <parse>
                 @type json
               </parse>
             </source>
 
-            # expose metrics in prometheus format
+            <source>
+              @type cloudwatch_logs
+              @label @CLOUDWATCH
+              region us-east-1
+              log_group_name awie-g3-d-kta-trans-01-log
+              tag cloudwatch.trans
+              <storage>
+                @type file
+                path /var/log/fluentd-cloudwatch-trans.state
+              </storage>
+              <parse>
+                @type json
+              </parse>
+            </source>
+
             <source>
               @type prometheus
               bind 0.0.0.0
               port 24231
               metrics_path /metrics
             </source>
+
         - name: fileConfigs.02_filters\.conf
           value: |
             <label @CLOUDWATCH>
-              <filter cloudwatch.logs.**>
+              <filter cloudwatch.**>
                 @type record_transformer
                 <record>
                   source_type cloudwatch
@@ -95,9 +99,9 @@ spec:
                 @label @OUTPUT
               </match>
             </label>
+
         - name: fileConfigs.03_dispatch\.conf
           value: |
-            # Keeping minimal dispatch configuration for metrics
             <label @DISPATCH>
               <filter **>
                 @type prometheus
@@ -116,30 +120,37 @@ spec:
                 @label @OUTPUT
               </match>
             </label>
+
         - name: fileConfigs.04_outputs\.conf
           value: |
             <label @OUTPUT>
-              # Send to Grafana Loki
-              <match **>
+              <match cloudwatch.app>
                 @type loki
-                url "http://loki-gateway.monitoring:80"    # Change to your Loki endpoint
-                extra_labels {"job": "fluentd-cloudwatch"}
+                url http://loki-query-frontend:3100
                 <label>
-                  source cloudwatch
-                  log_group ${log_group}
-                  aws_region ${record["awsRegion"]}
-                  cloud_provider aws
+                  app fluentd
+                  name awie-g3-d-kta-app-01-log
+                  namespace monitoring
                 </label>
                 <buffer>
-                  @type memory
-                  chunk_limit_size 5MB
                   flush_interval 5s
-                  flush_thread_count 8
-                  retry_max_interval 30
-                  retry_forever true
+                </buffer>
+              </match>
+
+              <match cloudwatch.trans>
+                @type loki
+                url http://loki-query-frontend:3100
+                <label>
+                  app fluentd
+                  name awie-g3-d-kta-trans-01-log
+                  namespace monitoring
+                </label>
+                <buffer>
+                  flush_interval 5s
                 </buffer>
               </match>
             </label>
+
   syncPolicy:
     automated:
       prune: true
