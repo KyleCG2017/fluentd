@@ -44,8 +44,6 @@ spec:
           value: fluent-plugin-cloudwatch-logs
         - name: plugins[2]
           value: aws-sdk
-        - name: env.FLUENT_UID
-          value: "0"
         - name: fileConfigs.01_sources\.conf
           value: |
             <source>
