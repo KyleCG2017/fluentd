@@ -42,7 +42,8 @@ spec:
           value: fluent-plugin-grafana-loki
         - name: plugins[1]
           value: fluent-plugin-cloudwatch-logs
-
+        - name: plugins[2]
+          value: aws-sdk
         - name: fileConfigs.01_sources\.conf
           value: |
             <source>
