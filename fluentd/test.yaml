@@ -1,0 +1,110 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fluentd-application
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: monitoring
+  source:
+    chart: fluentd
+    repoURL: https://fluent.github.io/helm-charts
+    targetRevision: 0.5.2
+    helm:
+      parameters:
+        - name: image.repository
+          value: fluent/fluentd
+        - name: image.tag
+          value: v1.16-debian
+        - name: resources.requests.cpu
+          value: "10m"
+        - name: resources.requests.memory
+          value: 128Mi
+        - name: resources.limits.memory
+          value: 128Mi
+        - name: autoscaling.enabled
+          value: "false"
+        - name: serviceAccount.create
+          value: "true"
+        - name: serviceAccount.name
+          value: fluentd-role
+        - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
+          value: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>
+        - name: plugins[0]
+          value: fluent-plugin-kafka
+
+        # All config in main.conf
+        - name: fileConfigs.main\.conf
+          value: |
+            <source>
+              @type tail
+              path /var/log/containers/*.log
+              pos_file /var/log/fluentdconnector-containers.log.pos
+              tag kubernetes.*
+              <parse>
+                @type json
+                time_format %Y-%m-%dT%H:%M:%S.%NZ
+              </parse>
+            </source>
+
+            <filter kubernetes.**>
+              @type concat
+              key log
+              multiline_start_regexp /^\[\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3}\]/
+              flush_interval 3s
+              timeout_label @NORMAL
+            </filter>
+
+            <filter kubernetes.**>
+              @type kubernetes_metadata
+            </filter>
+
+            <match kubernetes.**>
+              @type relabel
+              @label @NORMAL
+            </match>
+
+            <label @NORMAL>
+              <match kubernetes.**>
+                @type kafka2
+                brokers kafka01:9092
+                use_event_time true
+                default_topic k8s
+                required_acks 1
+                <format>
+                  @type json
+                </format>
+                <buffer horus-fluentd>
+                  @type file
+                  path /var/log/fluentd-buffers/kubernetes.buffer
+                  flush_thread_count 100
+                  flush_mode interval
+                  flush_interval 5s
+                  chunk_limit_size 20M
+                  queued_chunks_limit_size 10
+                  retry_max_interval 30
+                  retry_forever true
+                </buffer>
+              </match>
+            </label>
+
+        # Leave other configs blank
+        - name: fileConfigs.01_sources\.conf
+          value: ""
+        - name: fileConfigs.02_filters\.conf
+          value: ""
+        - name: fileConfigs.03_dispatch\.conf
+          value: ""
+        - name: fileConfigs.04_outputs\.conf
+          value: ""
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+

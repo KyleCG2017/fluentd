@@ -15,9 +15,9 @@ spec:
     helm:
       parameters:
         - name: image.repository
-          value: fluent/fluentd
+          value: fluent/fluentd-kubernetes-daemonset
         - name: image.tag
-          value: v1.16-debian
+          value: v1.18-debian-cloudwatch-1
         - name: resources.requests.cpu
           value: "10m"
         - name: resources.requests.memory
@@ -42,35 +42,70 @@ spec:
           value: fluent-plugin-grafana-loki
         - name: plugins[1]
           value: fluent-plugin-cloudwatch-logs
+        - name: plugins[2]
+          value: fluent-plugin-prometheus
+        - name: metrics.enabled
+          value: "true"
+        - name: metrics.port
+          value: "24231"
 
-        - name: fileConfigs.01_sources\.conf
+        # Lifehack starts here: blank the default config files
+        - name: fileConfigs.01_sources.conf
+          value: ""
+        - name: fileConfigs.02_filters.conf
+          value: ""
+        - name: fileConfigs.03_dispatch.conf
+          value: ""
+        - name: fileConfigs.04_outputs.conf
+          value: ""
+
+        # Main config file instead of the split ones
+        - name: fileConfigs.main.conf
           value: |
             <source>
               @type cloudwatch_logs
-              region us-east-1
+              region eu-west-1
               log_group_name awie-g3-d-kta-app-01-log
-              log_stream_name trans-log-stream
+              log_stream_name i-0ba38e333685bfdb9
               aws_sts_role_arn arn:aws:iam::727594547879:role/awie-iamr-ngdev-api-fluentd
               tag cloudwatch.app
+              <parse>
+                @type json
+              </parse>
             </source>
 
             <source>
               @type cloudwatch_logs
-              region us-east-1
-              log_group_name awie-g3-d-kta-trans-01-log
+              region eu-west-1
+              log_group_name i-0634db85aa69ded3d
               log_stream_name trans-log-stream
               aws_sts_role_arn arn:aws:iam::727594547879:role/awie-iamr-ngdev-api-fluentd
               tag cloudwatch.trans
+              <parse>
+                @type json
+              </parse>
             </source>
 
-        - name: fileConfigs.02_filters\.conf
-          value: ""
+            <source>
+              @type prometheus
+              port 24224
+              bind 0.0.0.0
+            </source>
 
-        - name: fileConfigs.03_dispatch\.conf
-          value: ""
+            <source>
+              @type prometheus_monitor
+              <labels>
+                host ${hostname}
+              </labels>
+            </source>
 
-        - name: fileConfigs.04_outputs\.conf
-          value: |
+            <source>
+              @type prometheus_output_monitor
+              <labels>
+                host ${hostname}
+              </labels>
+            </source>
+
             <label @OUTPUT>
               <match cloudwatch.app>
                 @type loki
@@ -81,7 +116,17 @@ spec:
                   namespace monitoring
                 </label>
                 <buffer>
+                  @type file
+                  @id buffer_cloudwatch_app
+                  path /fluentd/buffer/cloudwatch_app
+                  total_limit_size 1g
+                  chunk_limit_size 50m
                   flush_interval 5s
+                  flush_at_shutdown true
+                  queue_limit_length 32
+                  retry_forever true
+                  overflow_action drop_oldest_chunk
+                  persistent true
                 </buffer>
               </match>
 
@@ -94,7 +139,17 @@ spec:
                   namespace monitoring
                 </label>
                 <buffer>
+                  @type file
+                  @id buffer_cloudwatch_trans
+                  path /fluentd/buffer/cloudwatch_trans
+                  total_limit_size 1g
+                  chunk_limit_size 50m
                   flush_interval 5s
+                  flush_at_shutdown true
+                  queue_limit_length 32
+                  retry_forever true
+                  overflow_action drop_oldest_chunk
+                  persistent true
                 </buffer>
               </match>
             </label>
@@ -106,3 +161,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
+
