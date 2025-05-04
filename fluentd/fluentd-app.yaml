@@ -1,3 +1,4 @@
+
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -15,7 +16,7 @@ spec:
     helm:
       parameters:
         - name: image.repository
-          value: fluent/fluentd-kubernetes-daemonset  # Revert to DaemonSet image
+          value: fluent/fluentd-kubernetes-daemonset
         - name: image.tag
           value: v1.18-debian-cloudwatch-1
         - name: resources.requests.cpu
@@ -25,7 +26,7 @@ spec:
         - name: resources.limits.memory
           value: 400Mi
         - name: autoscaling.enabled
-          value: "false"
+          value: "true"
         - name: autoscaling.minReplicas
           value: "1"
         - name: autoscaling.maxReplicas
@@ -87,60 +88,6 @@ spec:
         - name: service.ports[0].containerPort
           value: "24231"
         # REMOVE any duplicate service.ports[1] definitions if they exist
-
-        # File configs
-        - name: fileConfigs.01_sources\.conf
-          value: |
-            <source>
-               @type cloudwatch_logs
-               region eu-west-1
-               log_group_name awie-g3-d-ktaa-app-01-log
-               log_stream_name i-0ba38e333685bf5535db9
-               tag cloudwatch.app
-               <parse>
-                 @type json
-               </parse>
-            </source>
-
-            <source>
-              @type cloudwatch_logs
-              region eu-west-1
-              log_group_name awie-g3-d-kt3aa-trans-01-log
-              log_stream_name i-0634db85aa69d555ed333d
-              aws_sts_role_arn arn:aws:iam::87654333564:role/awie-iamr-ngdev-api-fluentd
-              tag cloudwatch.trans
-              <parse>
-                @type json  # Parse the logs as JSON
-              </parse>
-            </source>
-
-            <source>
-              @type prometheus
-              bind 0.0.0.0
-              port 24231
-              metrics_path /metrics
-            </source>
-
-        - name: fileConfigs.02_filters\.conf
-          value: ""
-
-        - name: fileConfigs.03_dispatch\.conf
-          value: ""
-
-        - name: fileConfigs.04_outputs\.conf
-          value: |
-            <match cloudwatch.**>
-              @type loki
-              url http://loki.monitoring.svc.cluster.local:3100
-              <label>
-                job fluentd
-              </label>
-              <buffer>
-                @type memory
-                flush_interval 10s
-              </buffer>
-            </match>
-
   syncPolicy:
     automated:
       prune: true
@@ -148,4 +95,3 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
-
