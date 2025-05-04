@@ -7,7 +7,7 @@ spec:
   project: default
   destination:
     server: "https://kubernetes.default.svc"
-    namespace: monitoring
+    namespace: default
   source:
     chart: fluentd
     repoURL: registry-1.docker.io/bitnamicharts
