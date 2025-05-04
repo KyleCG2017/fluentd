@@ -10,8 +10,8 @@ spec:
     namespace: monitoring
   source:
     chart: fluentd
-    repoURL: https://fluent.github.io/helm-charts
-    targetRevision: 0.5.2
+    repoURL: registry-1.docker.io/bitnamicharts
+    targetRevision: 7.1.5
     helm:
       parameters:
         - name: image.repository
@@ -36,129 +36,110 @@ spec:
           value: "true"
         - name: serviceAccount.name
           value: fluentd-role
-        - name: serviceAccount.annotations.eks\.amazonaws\.com/role-arn
-          value: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<YOUR_FLUENTD_ROLE>
         - name: plugins[0]
           value: fluent-plugin-grafana-loki
         - name: plugins[1]
           value: fluent-plugin-cloudwatch-logs
-        - name: plugins[2]
-          value: fluent-plugin-prometheus
-        - name: metrics.enabled
-          value: "true"
-        - name: metrics.port
-          value: "24231"
-
-        # Lifehack starts here: blank the default config files
         - name: fileConfigs.01_sources.conf
-          value: ""
+          value: |
+          <source>
+            @type cloudwatch_logs
+            region eu-west-1
+            log_group_name awie-g3-d-ktyaa-app-01-log
+            log_stream_name i-0ba38e333685bf55655db9
+            # aws_sts_role_arn arn:aws:iam::72754549456547879:role/awie-iamr-ngdev-api-fluentd
+            tag cloudwatch.app
+            <parse>
+              @type json
+            </parse>
+          </source>
+
+          <source>
+            @type cloudwatch_logs
+            region eu-west-1
+            log_group_name awie-g3-d-ktyaa-app-01-log
+            log_stream_name i-0ba38e333685bf55655db9
+            # aws_sts_role_arn arn:aws:iam::72754549456547879:role/awie-iamr-ngdev-api-fluentd
+            tag cloudwatch.app
+            <parse>
+              @type json
+            </parse>
+          </source>
+
+          <source>
+            @type prometheus
+            bind 0.0.0.0
+            port 24231
+            metrics_path /metrics
+          </source>
+
         - name: fileConfigs.02_filters.conf
           value: ""
+
         - name: fileConfigs.03_dispatch.conf
           value: ""
+
         - name: fileConfigs.04_outputs.conf
-          value: ""
-
-        # Main config file instead of the split ones
-        - name: fileConfigs.main.conf
           value: |
-            <source>
-              @type cloudwatch_logs
-              region eu-west-1
-              log_group_name awie-g3-d-kta-app-01-log
-              log_stream_name i-0ba38e333685bfdb9
-              aws_sts_role_arn arn:aws:iam::727594547879:role/awie-iamr-ngdev-api-fluentd
-              tag cloudwatch.app
-              <parse>
-                @type json
-              </parse>
-            </source>
+            <match **>
+              @type stdout
+              log_level info
+            </match>
 
-            <source>
-              @type cloudwatch_logs
-              region eu-west-1
-              log_group_name i-0634db85aa69ded3d
-              log_stream_name trans-log-stream
-              aws_sts_role_arn arn:aws:iam::727594547879:role/awie-iamr-ngdev-api-fluentd
-              tag cloudwatch.trans
-              <parse>
-                @type json
-              </parse>
-            </source>
+        - name: livenessProbe.httpGet.path
+          value: /metrics
 
-            <source>
-              @type prometheus
-              port 24224
-              bind 0.0.0.0
-            </source>
+        - name: livenessProbe.httpGet.port
+          value: forwarder
 
-            <source>
-              @type prometheus_monitor
-              <labels>
-                host ${hostname}
-              </labels>
-            </source>
+        - name: livenessProbe.httpGet.initialDelaySeconds
+          value: "60"
 
-            <source>
-              @type prometheus_output_monitor
-              <labels>
-                host ${hostname}
-              </labels>
-            </source>
+        - name: livenessProbe.httpGet.periodSeconds
+          value: "15"
 
-            <label @OUTPUT>
-              <match cloudwatch.app>
-                @type loki
-                url http://loki-query-frontend:3100
-                <label>
-                  app fluentd
-                  name awie-g3-d-kta-app-01-log
-                  namespace monitoring
-                </label>
-                <buffer>
-                  @type file
-                  @id buffer_cloudwatch_app
-                  path /fluentd/buffer/cloudwatch_app
-                  total_limit_size 1g
-                  chunk_limit_size 50m
-                  flush_interval 5s
-                  flush_at_shutdown true
-                  queue_limit_length 32
-                  retry_forever true
-                  overflow_action drop_oldest_chunk
-                  persistent true
-                </buffer>
-              </match>
+        - name: livenessProbe.httpGet.timeoutSeconds
+          value: "5"
 
-              <match cloudwatch.trans>
-                @type loki
-                url http://loki-query-frontend:3100
-                <label>
-                  app fluentd
-                  name awie-g3-d-kta-trans-01-log
-                  namespace monitoring
-                </label>
-                <buffer>
-                  @type file
-                  @id buffer_cloudwatch_trans
-                  path /fluentd/buffer/cloudwatch_trans
-                  total_limit_size 1g
-                  chunk_limit_size 50m
-                  flush_interval 5s
-                  flush_at_shutdown true
-                  queue_limit_length 32
-                  retry_forever true
-                  overflow_action drop_oldest_chunk
-                  persistent true
-                </buffer>
-              </match>
-            </label>
+        - name: livenessProbe.httpGet.successThreshold
+          value: "1"
 
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
+        - name: livenessProbe.httpGet.failureThreshold
+          value: "5"
+
+        - name: readinessProbe.httpGet.path
+          value: /metrics
+
+        - name: readinessProbe.httpGet.port
+          value: forwarder
+
+        - name: readinessProbe.httpGet.initialDelaySeconds
+          value: "30"
+
+        - name: readinessProbe.httpGet.periodSeconds
+          value: "10"
+
+        - name: readinessProbe.httpGet.timeoutSeconds
+          value: "5"
+
+        - name: readinessProbe.httpGet.successThreshold
+          value: "1"
+
+        - name: readinessProbe.httpGet.failureThreshold
+          value: "3"
+
+        - name: service.enabled
+          value: "true"
+
+        - name: service.type
+          value: "ClusterIP"
+
+        - name: service.ports[0].name
+          value: "forwarder"
+
+        - name: service.ports[0].protocol
+          value: "TCP"
+
+        - name: service.ports[0].containerport
+          value: "24224"
 
