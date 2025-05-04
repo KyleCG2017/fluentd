@@ -15,7 +15,7 @@ spec:
     helm:
       parameters:
         - name: image.repository
-          value: fluent/fluentd-kubernetes-daemonset
+          value: fluent/fluentd-kubernetes-daemonset  # Revert to DaemonSet image
         - name: image.tag
           value: v1.18-debian-cloudwatch-1
         - name: resources.requests.cpu
@@ -86,6 +86,9 @@ spec:
           value: "TCP"
         - name: service.ports[0].containerPort
           value: "24231"
+        # REMOVE any duplicate service.ports[1] definitions if they exist
+
+        # File configs
         - name: fileConfigs.01_sources\.conf
           value: |
             <source>
@@ -93,7 +96,6 @@ spec:
                region eu-west-1
                log_group_name awie-g3-d-ktaa-app-01-log
                log_stream_name i-0ba38e333685bf5535db9
-              # aws_sts_role_arn arn:aws:iam::7275435494547879:role/awie-iamr-ngdev-api-fluentd
                tag cloudwatch.app
                <parse>
                  @type json
@@ -112,7 +114,6 @@ spec:
               </parse>
             </source>
 
-
             <source>
               @type prometheus
               bind 0.0.0.0
@@ -120,22 +121,11 @@ spec:
               metrics_path /metrics
             </source>
 
-
         - name: fileConfigs.02_filters\.conf
-          value: |
-            <filter kube.**>
-              @type record_transformer
-              enable_ruby true
-              <record>
-                hostname ${hostname}
-              </record>
-            </filter>
+          value: ""
 
         - name: fileConfigs.03_dispatch\.conf
-          value: |
-            <match **>
-              @type stdout
-            </match>
+          value: ""
 
         - name: fileConfigs.04_outputs\.conf
           value: |
@@ -151,12 +141,6 @@ spec:
               </buffer>
             </match>
 
-
-
-
-
-
-
   syncPolicy:
     automated:
       prune: true
@@ -164,3 +148,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
+
