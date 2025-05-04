@@ -45,7 +45,7 @@ spec:
         - name: plugins[2]
           value: fluent-plugin-prometheus
         - name: metrics.enabled
-          value: "true"
+          value: "false"
         - name: metrics.port
           value: "24231"
         - name: livenessProbe.httpGet.path
