@@ -53,30 +53,30 @@ spec:
           value: /metrics
         - name: livenessProbe.httpGet.port
           value: "24231"
-        - name: livenessProbe.httpGet.initialDelaySeconds
-          value: "120"
-        - name: livenessProbe.httpGet.periodSeconds
-          value: "15"
-        - name: livenessProbe.httpGet.timeoutSeconds
-          value: "5"
-        - name: livenessProbe.httpGet.successThreshold
-          value: "1"
-        - name: livenessProbe.httpGet.failureThreshold
-          value: "5"
-        - name: readinessProbe.httpGet.path
-          value: /metrics
+       # - name: livenessProbe.httpGet.initialDelaySeconds
+       #   value: "120"
+       # - name: livenessProbe.httpGet.periodSeconds
+       #   value: "15"
+       # - name: livenessProbe.httpGet.timeoutSeconds
+       #   value: "5"
+       # - name: livenessProbe.httpGet.successThreshold
+       #   value: "1"
+       # - name: livenessProbe.httpGet.failureThreshold
+       #   value: "5"
+         - name: readinessProbe.httpGet.path
+           value: /metrics
         - name: readinessProbe.httpGet.port
           value: "24231"
-        - name: readinessProbe.httpGet.initialDelaySeconds
-          value: "60"
-        - name: readinessProbe.httpGet.periodSeconds
-          value: "10"
-        - name: readinessProbe.httpGet.timeoutSeconds
-          value: "5"
-        - name: readinessProbe.httpGet.successThreshold
-          value: "1"
-        - name: readinessProbe.httpGet.failureThreshold
-          value: "3"
+       # - name: readinessProbe.httpGet.initialDelaySeconds
+       #   value: "60"
+       # - name: readinessProbe.httpGet.periodSeconds
+       #   value: "10"
+       # - name: readinessProbe.httpGet.timeoutSeconds
+       #   value: "5"
+       # - name: readinessProbe.httpGet.successThreshold
+       #   value: "1"
+       # - name: readinessProbe.httpGet.failureThreshold
+       #   value: "3"
         - name: service.enabled
           value: "true"
         - name: service.type
